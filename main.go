@@ -4,10 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"github.com/Chinchzilla/pokedex-go/internal/pokedexapi"
 )
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+	cfg := &Config{
+		pokedexAPIClient: pokedexapi.GetPokedexAPIClient(),
+		nextUrl:          nil,
+		prevUrl:          nil,
+	}
+	// Initialize empty string for nextUrl as a first value
+	// The client should handle it as the first request and initialize
+	// the corret nextUrl field with the URL returned by the API.
+	var emptyString string
+	cfg.nextUrl = &emptyString
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -25,7 +37,10 @@ func main() {
 			continue
 		}
 
-		command.callback()
+		err := command.callback(cfg)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 	}
 
 }
