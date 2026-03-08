@@ -3,8 +3,12 @@ package pokedexapi
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/Chinchzilla/pokedex-go/internal/pokecache"
 )
 
 type PokedexResults struct {
@@ -18,39 +22,53 @@ type PokedexResponse struct {
 	Results  []PokedexResults `json:"results"`
 }
 
+type PokeClient struct {
+	httpClient http.Client
+	cache      *pokecache.Cache
+}
+
 const (
 	baseURL              = "https://pokeapi.co/api/v2/"
 	locationAreaEndpoint = "location-area"
 )
 
-func GetPokedexAPIClient() *http.Client {
-	return &http.Client{}
+func GetPokedexAPIClient(interval time.Duration) *PokeClient {
+	return &PokeClient{
+		httpClient: http.Client{},
+		cache:      pokecache.NewCache(interval),
+	}
 }
 
-func GetLocationArea(url string, client *http.Client) (PokedexResponse, error) {
+func GetLocationArea(url string, client *PokeClient) (PokedexResponse, error) {
 	if strings.Trim(url, " ") == "" {
 		url = baseURL + locationAreaEndpoint
 	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return PokedexResponse{}, err
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return PokedexResponse{}, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return PokedexResponse{}, errors.New("failed to fetch location area")
-	}
-
-	decoder := json.NewDecoder(res.Body)
-
 	var pokedexRes PokedexResponse
-	err = decoder.Decode(&pokedexRes)
+	data, is_cached := client.cache.Get(url)
+	if !is_cached {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return PokedexResponse{}, err
+		}
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return PokedexResponse{}, err
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			return PokedexResponse{}, errors.New("failed to fetch location area")
+		}
+
+		data, err = io.ReadAll(res.Body)
+		if err != nil {
+			return PokedexResponse{}, err
+		}
+		client.cache.Add(url, data)
+	}
+
+	err := json.Unmarshal(data, &pokedexRes)
 	if err != nil {
 		return PokedexResponse{}, err
 	}

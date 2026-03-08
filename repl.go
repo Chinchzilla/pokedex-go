@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 )
 
 type Config struct {
-	pokedexAPIClient *http.Client
+	pokedexAPIClient *pokedexapi.PokeClient
 	nextUrl          *string
 	prevUrl          *string
 }
@@ -90,26 +89,6 @@ func commandMap(cfg *Config) error {
 }
 
 func commandMapBackward(cfg *Config) error {
-	fmt.Println("Mapping location areas backwards...")
-	if cfg.prevUrl == nil {
-		return fmt.Errorf("No more location areas found.")
-	}
-	res, err := pokedexapi.GetLocationArea(*cfg.prevUrl, cfg.pokedexAPIClient)
-	if err != nil {
-		return err
-	}
-
-	for _, location := range res.Results {
-		fmt.Println(location.Name)
-	}
-
-	cfg.nextUrl = res.Next
-	cfg.prevUrl = res.Previous
-
-	return nil
-}
-
-func commandMapb(cfg *Config) error {
 	fmt.Println("Mapping location areas backwards...")
 	if cfg.prevUrl == nil {
 		return fmt.Errorf("No more location areas found.")

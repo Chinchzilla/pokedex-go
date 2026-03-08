@@ -4,14 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Chinchzilla/pokedex-go/internal/pokedexapi"
 )
 
+const cacheInterval = 5 * time.Second
+
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	cfg := &Config{
-		pokedexAPIClient: pokedexapi.GetPokedexAPIClient(),
+		pokedexAPIClient: pokedexapi.GetPokedexAPIClient(cacheInterval),
 		nextUrl:          nil,
 		prevUrl:          nil,
 	}
