@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -17,7 +18,7 @@ type Config struct {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*Config) error
+	callback    func(*Config, ...string) error
 }
 
 func getCommands() map[string]cliCommand {
@@ -42,6 +43,47 @@ func getCommands() map[string]cliCommand {
 			description: "Map location areas backwards",
 			callback:    commandMapBackward,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Explore a given area",
+			callback:    commandExplore,
+		},
+	}
+}
+
+func startRepl(cfg *Config) {
+	scanner := bufio.NewScanner(os.Stdin)
+	// Initialize empty string for nextUrl as a first value
+	// The client should handle it as the first request and initialize
+	// the corret nextUrl field with the URL returned by the API.
+	var emptyString string
+	cfg.nextUrl = &emptyString
+
+	for {
+		fmt.Print("Pokedex > ")
+
+		if !scanner.Scan() {
+			break
+		}
+
+		input := cleanInput(scanner.Text())
+		cliCommands := getCommands()
+
+		command, ok := cliCommands[input[0]]
+		if !ok {
+			fmt.Println("Unknown command")
+			continue
+		}
+
+		var args []string
+		if len(input) > 1 {
+			args = input[1:]
+		}
+
+		err := command.callback(cfg, args...)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 	}
 }
 
@@ -50,60 +92,4 @@ func cleanInput(text string) []string {
 	lowerCase := strings.ToLower(trim)
 	split := strings.Fields(lowerCase)
 	return split
-}
-
-func commandExit(cfg *Config) error {
-	fmt.Println("Closing the Pokedex... Goodbye!")
-	os.Exit(0)
-	return nil
-}
-
-func commandHelp(cfg *Config) error {
-	cliCommands := getCommands()
-	fmt.Println("Welcome to the Pokedex!")
-	fmt.Printf("Usage:\n\n")
-	for _, command := range cliCommands {
-		fmt.Printf("%s - %s\n", command.name, command.description)
-	}
-	return nil
-}
-
-func commandMap(cfg *Config) error {
-	fmt.Println("Mapping location areas...")
-	if cfg.nextUrl == nil {
-		return fmt.Errorf("No more location areas found.")
-	}
-	res, err := pokedexapi.GetLocationArea(*cfg.nextUrl, cfg.pokedexAPIClient)
-	if err != nil {
-		return err
-	}
-
-	for _, location := range res.Results {
-		fmt.Println(location.Name)
-	}
-
-	cfg.nextUrl = res.Next
-	cfg.prevUrl = res.Previous
-
-	return nil
-}
-
-func commandMapBackward(cfg *Config) error {
-	fmt.Println("Mapping location areas backwards...")
-	if cfg.prevUrl == nil {
-		return fmt.Errorf("No more location areas found.")
-	}
-	res, err := pokedexapi.GetLocationArea(*cfg.prevUrl, cfg.pokedexAPIClient)
-	if err != nil {
-		return err
-	}
-
-	for _, location := range res.Results {
-		fmt.Println(location.Name)
-	}
-
-	cfg.nextUrl = res.Next
-	cfg.prevUrl = res.Previous
-
-	return nil
 }
