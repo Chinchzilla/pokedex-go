@@ -101,6 +101,7 @@ func ExploreLocation(client *PokeClient, args ...string) (Explore, error) {
 func GetPokemon(client *PokeClient, args ...string) (Pokemon, error) {
 	pokemon_name := args[0]
 	url := baseURL + pokemonEndpoint + "/" + pokemon_name
+
 	var getPokemonRes Pokemon
 	data, is_cached := client.cache.Get(url)
 	if !is_cached {

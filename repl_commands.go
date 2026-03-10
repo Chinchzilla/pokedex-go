@@ -111,3 +111,42 @@ func commandCatch(cfg *Config, args ...string) error {
 
 	return nil
 }
+
+func commandInspect(cfg *Config, args ...string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("No pokemon name provided")
+	}
+
+	pokemon_name := args[0]
+	pokemon, caught := cfg.caughtPokemon[pokemon_name]
+	if !caught {
+		return fmt.Errorf("%s is not caught", pokemon.Name)
+	}
+
+	fmt.Printf("Name: %s\n", pokemon.Name)
+	fmt.Printf("Height: %d\n", pokemon.Height)
+	fmt.Printf("Weight: %d\n", pokemon.Weight)
+	fmt.Println("Stats:")
+	for _, stat := range pokemon.Stats {
+		fmt.Printf("\t- %s: %d\n", stat.Stat.Name, stat.BaseStat)
+	}
+	fmt.Println("Types:")
+	for _, pokeType := range pokemon.Types {
+		fmt.Printf("\t- %s\n", pokeType.Type.Name)
+	}
+
+	return nil
+}
+
+func commandPokedex(cfg *Config, args ...string) error {
+	if len(cfg.caughtPokemon) == 0 {
+		return fmt.Errorf("No pokemon caught")
+	}
+
+	fmt.Println("Your Pokedex:")
+	for _, pokemon := range cfg.caughtPokemon {
+		fmt.Printf("- %s\n", pokemon.Name)
+	}
+
+	return nil
+}
