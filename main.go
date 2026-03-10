@@ -11,6 +11,7 @@ const cacheInterval = 5 * time.Second
 func main() {
 	cfg := &Config{
 		pokedexAPIClient: pokedexapi.NewClient(cacheInterval),
+		caughtPokemon:    make(map[string]pokedexapi.Pokemon),
 	}
 
 	startRepl(cfg)

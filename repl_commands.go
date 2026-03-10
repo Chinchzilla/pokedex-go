@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 
 	"github.com/Chinchzilla/pokedex-go/internal/pokedexapi"
@@ -64,6 +65,9 @@ func commandMapBackward(cfg *Config, args ...string) error {
 }
 
 func commandExplore(cfg *Config, args ...string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("No location provided")
+	}
 	location := args[0]
 	fmt.Printf("Exploring %s...\n", location)
 
@@ -74,6 +78,35 @@ func commandExplore(cfg *Config, args ...string) error {
 
 	for _, pokemon := range res.PokemonEncounters {
 		fmt.Printf("\t- %s\n", pokemon.Pokemon.Name)
+	}
+
+	return nil
+}
+
+func commandCatch(cfg *Config, args ...string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("No pokemon name provided")
+	}
+	pokemon_name := args[0]
+	_, caught := cfg.caughtPokemon[pokemon_name]
+	if caught {
+		fmt.Printf("%s is already caught!\n", pokemon_name)
+		return nil
+	}
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemon_name)
+	pokemon, err := pokedexapi.GetPokemon(cfg.pokedexAPIClient, pokemon_name)
+	if err != nil {
+		fmt.Printf("Error getting pokemon: %s\n", err)
+		return err
+	}
+
+	chance := rand.Intn(500)
+	if chance > pokemon.BaseExperience {
+		fmt.Printf("%s was caught!\n", pokemon.Name)
+		cfg.caughtPokemon[pokemon.Name] = pokemon
+	} else {
+		fmt.Printf("%s escaped!\n", pokemon.Name)
 	}
 
 	return nil

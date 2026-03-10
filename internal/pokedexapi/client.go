@@ -11,27 +11,6 @@ import (
 	"github.com/Chinchzilla/pokedex-go/internal/pokecache"
 )
 
-type PokedexResults struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-type LocationAreaResponse struct {
-	Next     *string          `json:"next"`
-	Previous *string          `json:"previous"`
-	Results  []PokedexResults `json:"results"`
-}
-
-type PokemonEncounter struct {
-	Pokemon PokedexResults `json:"pokemon"`
-}
-
-type ExploreResponse struct {
-	ID                int                `json:"id"`
-	Name              string             `json:"name"`
-	PokemonEncounters []PokemonEncounter `json:"pokemon_encounters"`
-}
-
 type PokeClient struct {
 	httpClient http.Client
 	cache      *pokecache.Cache
@@ -40,6 +19,7 @@ type PokeClient struct {
 const (
 	baseURL              = "https://pokeapi.co/api/v2/"
 	locationAreaEndpoint = "location-area"
+	pokemonEndpoint      = "pokemon"
 )
 
 func NewClient(interval time.Duration) *PokeClient {
@@ -73,16 +53,16 @@ func doRequest(method, url string, body io.Reader, client *PokeClient) ([]byte, 
 
 }
 
-func GetLocationArea(url string, client *PokeClient) (LocationAreaResponse, error) {
+func GetLocationArea(url string, client *PokeClient) (Location, error) {
 	if strings.Trim(url, " ") == "" {
 		url = baseURL + locationAreaEndpoint
 	}
-	var pokedexRes LocationAreaResponse
+	var pokedexRes Location
 	data, is_cached := client.cache.Get(url)
 	if !is_cached {
 		dataRaw, err := doRequest(http.MethodGet, url, nil, client)
 		if err != nil {
-			return LocationAreaResponse{}, err
+			return Location{}, err
 		}
 		client.cache.Add(url, dataRaw)
 		data = dataRaw
@@ -90,21 +70,21 @@ func GetLocationArea(url string, client *PokeClient) (LocationAreaResponse, erro
 
 	err := json.Unmarshal(data, &pokedexRes)
 	if err != nil {
-		return LocationAreaResponse{}, err
+		return Location{}, err
 	}
 
 	return pokedexRes, nil
 }
 
-func ExploreLocation(client *PokeClient, args ...string) (ExploreResponse, error) {
+func ExploreLocation(client *PokeClient, args ...string) (Explore, error) {
 	location := args[0]
 	url := baseURL + locationAreaEndpoint + "/" + location
-	var exploreLocationRes ExploreResponse
+	var exploreLocationRes Explore
 	data, is_cached := client.cache.Get(url)
 	if !is_cached {
 		dataRaw, err := doRequest(http.MethodGet, url, nil, client)
 		if err != nil {
-			return ExploreResponse{}, err
+			return Explore{}, err
 		}
 		client.cache.Add(url, dataRaw)
 		data = dataRaw
@@ -112,8 +92,30 @@ func ExploreLocation(client *PokeClient, args ...string) (ExploreResponse, error
 
 	err := json.Unmarshal(data, &exploreLocationRes)
 	if err != nil {
-		return ExploreResponse{}, err
+		return Explore{}, err
 	}
 
 	return exploreLocationRes, nil
+}
+
+func GetPokemon(client *PokeClient, args ...string) (Pokemon, error) {
+	pokemon_name := args[0]
+	url := baseURL + pokemonEndpoint + "/" + pokemon_name
+	var getPokemonRes Pokemon
+	data, is_cached := client.cache.Get(url)
+	if !is_cached {
+		dataRaw, err := doRequest(http.MethodGet, url, nil, client)
+		if err != nil {
+			return Pokemon{}, err
+		}
+		client.cache.Add(url, dataRaw)
+		data = dataRaw
+	}
+
+	err := json.Unmarshal(data, &getPokemonRes)
+	if err != nil {
+		return Pokemon{}, err
+	}
+
+	return getPokemonRes, nil
 }
